@@ -1,0 +1,54 @@
+GEO 3D — BELO HORIZONTE
+
+O que contém
+- index.html: interface única com mapa interativo, terreno 3D, camadas, busca e exportação KML.
+- dados/regionais.geojson: regionais administrativas.
+- dados/bairros_oficiais.geojson: bairros oficiais.
+- dados/bairros_populares.geojson: bairros populares.
+- dados/curvas_nivel_5m.geojson: curvas de nível com atributo COTA.
+
+IMPORTANTE SOBRE OS DADOS
+Os GeoJSON foram convertidos dos SHP fornecidos para WGS84 (EPSG:4326), necessário para mapas web, com simplificação geométrica para reduzir tamanho e melhorar desempenho. As curvas foram simplificadas em tolerância de 2 m; os polígonos administrativos em 1 m. Isso é adequado para visualização geral, não substitui os arquivos originais para levantamentos cadastrais ou medições oficiais.
+
+COMO ABRIR
+Não abra index.html por duplo clique: navegadores normalmente bloqueiam fetch de arquivos locais. Execute a partir de um servidor web estático. Opção local:
+1. Instale Python 3.
+2. Abra o terminal dentro da pasta GeradorGeo3D.
+3. Execute: python -m http.server 8000
+4. Acesse: http://localhost:8000
+
+HOSPEDAGEM
+Para acessar de outros dispositivos, publique a pasta inteira em uma hospedagem estática HTTPS (por exemplo, GitHub Pages ou serviço equivalente). Preserve a pasta dados/ e seus nomes. Os dados do mapa são públicos para qualquer pessoa com acesso à página; não publique dados privados na mesma pasta.
+
+RECURSOS
+- Camadas: regionais, bairros oficiais, bairros populares e curvas de nível de 5 m.
+- Controle de terreno 3D e exagero vertical.
+- Busca por nome de bairro/regional.
+- Consulta de atributos ao clicar nas feições.
+- Importação opcional de CSV de pontos com cabeçalhos numero,norte,este,altitude; norte/este em UTM zona 23S (EPSG:31983). Separador vírgula ou ponto-e-vírgula.
+- Exportação KML das camadas ativadas e dos pontos importados.
+
+FONTES EXTERNAS
+O estilo do mapa usa OpenFreeMap e a elevação usa tiles públicos Terrarium hospedados no AWS Open Data. A disponibilidade, cobertura, limites e termos desses serviços podem mudar; requer internet. As camadas vetoriais incluídas no pacote são cópias convertidas dos arquivos enviados.
+
+GOOGLE EARTH
+Clique em “Exportar KML selecionado” e abra o arquivo baixado no Google Earth. Para um KMZ compactado, abra o KML no Google Earth Pro e use Arquivo > Salvar lugar como… > KMZ.
+
+INTEGRAÇÃO COM GOOGLE SHEETS
+Este pacote é uma aplicação web estática independente, não altera automaticamente o projeto Apps Script existente. Ela pode ser hospedada e aberta em uma janela própria. O gerador KML atual do usuário pode continuar existindo em paralelo. Para embutir a interface dentro do Apps Script, os GeoJSON de curvas ocupam dezenas de MB; a abordagem recomendada é hospedar os dados e a interface via HTTPS e abrir a aplicação a partir do menu da planilha.
+
+ATALHO OPCIONAL NO MENU DA PLANILHA
+O arquivo IntegracaoAppsScript.gs inclui a função abrirGeo3D(). Depois de hospedar a aplicação, substitua GEO3D_URL pela URL HTTPS publicada. Copie a função para o Apps Script da planilha e adicione .addItem('Abrir mapas Geo 3D', 'abrirGeo3D') ao menu criado no onOpen() que já existe. Não crie outro onOpen().
+
+
+INTEGRAÇÃO COM O GERADOR KML EXISTENTE
+- GeradorKML.gs e GeradorkML.html: cópias do gerador enviado pelo usuário.
+- Foi corrigida a interpretação do parâmetro "fechado" em kmlGerarArquivo:
+  agora fechado=true gera Polygon e fechado=false gera LineString.
+- Para manter as duas ferramentas no menu da planilha, use o arquivo
+  IntegracaoAppsScript.gs e acrescente os dois addItem ao onOpen() existente.
+- O Geo 3D ainda é publicado como página web independente; a janela de integração
+  abre um link para a página hospedada. Os dados de pontos da planilha não são
+  sincronizados automaticamente com o Geo 3D: por enquanto, importe CSV na página.
+- A interface HTML do gerador KML continua usando google.script.run e deve ficar
+  dentro do projeto Apps Script, não ser aberta como página estática.

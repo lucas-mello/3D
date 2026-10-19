@@ -1,0 +1,931 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font: 14px Arial, sans-serif;
+      margin: 0;
+      color: #202124;
+      background: #fff;
+    }
+
+    header {
+      padding: 14px 18px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dadce0;
+    }
+
+    h2 {
+      font-size: 19px;
+      margin: 0 0 5px;
+    }
+
+    .hint {
+      font-size: 12px;
+      line-height: 1.45;
+      color: #5f6368;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 360px minmax(400px, 1fr);
+      gap: 14px;
+      padding: 14px;
+      height: calc(100vh - 82px);
+    }
+
+    .panel {
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin: 11px 0 5px;
+    }
+
+    input, textarea, select {
+      font: inherit;
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #dadce0;
+      border-radius: 5px;
+    }
+
+    input[type="checkbox"] {
+      width: auto;
+      margin: 0 7px 0 0;
+      vertical-align: middle;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 52px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .row > div {
+      flex: 1;
+      min-width: 0;
+    }
+
+    button {
+      border: 0;
+      border-radius: 5px;
+      padding: 9px 11px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .primary {
+      background: #1a73e8;
+      color: white;
+    }
+
+    .secondary {
+      background: #f1f3f4;
+      color: #202124;
+    }
+
+    .danger {
+      background: #fce8e6;
+      color: #b3261e;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .primary:disabled {
+      opacity: .55;
+      cursor: wait;
+    }
+
+    #map {
+      height: 100%;
+      min-height: 420px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      z-index: 1;
+    }
+
+    .mapwrap {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .maphead {
+      padding: 7px 2px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .maptools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .maptools select {
+      width: auto;
+      min-width: 190px;
+      padding: 6px;
+      font-size: 12px;
+    }
+
+    .pill {
+      background: #e8f0fe;
+      color: #174ea6;
+      border-radius: 20px;
+      padding: 5px 9px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    #status {
+      margin: 10px 0;
+      color: #137333;
+      white-space: pre-wrap;
+      line-height: 1.4;
+    }
+
+    .pointlist, #groups {
+      max-height: 145px;
+      overflow: auto;
+      background: #f8f9fa;
+      padding: 8px;
+      border-radius: 6px;
+    }
+
+    .pointitem, .groupitem {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 2px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .pointitem span:first-child {
+      flex: 1;
+    }
+
+    .small {
+      font-size: 12px;
+      padding: 4px 7px;
+    }
+
+    .groupitem .gtext {
+      flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      display: inline-block;
+      border: 1px solid #aaa;
+      flex-shrink: 0;
+    }
+
+    .footer {
+      margin-top: 10px;
+    }
+
+    .muted {
+      color: #5f6368;
+      font-size: 12px;
+    }
+
+    #download {
+      display: none;
+      margin-top: 12px;
+    }
+
+    .modebox {
+      margin-top: 12px;
+      padding: 10px;
+      background: #f8f9fa;
+      border: 1px solid #dadce0;
+      border-radius: 6px;
+    }
+
+    .modebox label {
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .modehelp {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #5f6368;
+      line-height: 1.4;
+    }
+
+    @media(max-width: 800px) {
+      .layout {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+
+      .panel {
+        overflow: visible;
+      }
+
+      #map {
+        height: 55vh;
+        min-height: 350px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h2>Adicionar polígono · Gerador KML</h2>
+
+  <div style="margin:10px 14px 0;padding:10px 12px;background:#e8f0fe;border:1px solid #c6dafc;border-radius:6px;color:#174ea6;font-size:13px">
+    <strong>Modo de altitude:</strong> Ajustar ao terreno
+    <br>
+    <span style="font-family:monospace">clampToGround</span>
+    — os polígonos e as linhas KML serão projetados sobre a superfície do Google Earth.
+  </div>
+
+  <div class="hint" style="margin-top:10px">
+    Clique nos marcadores do mapa para montar o contorno na ordem desejada ou digite os números dos pontos.
+    Coordenadas de origem: SIRGAS 2000 / UTM 23S.
+  </div>
+</header>
+
+<div class="layout">
+
+  <section class="panel">
+
+    <div class="row">
+      <div>
+        <label for="name">Nome do grupo</label>
+        <input id="name" placeholder="Ex.: Área 01">
+      </div>
+
+      <div style="max-width:85px">
+        <label for="color">Cor da linha</label>
+        <input id="color" type="color" value="#ffa500"
+          style="height:36px;padding:3px">
+      </div>
+    </div>
+
+    <label for="description">Descrição</label>
+    <textarea id="description" placeholder="Descrição opcional"></textarea>
+
+    <div class="row">
+      <div>
+        <label for="zone">Zona UTM</label>
+        <input id="zone" type="number" min="1" max="60" value="23">
+      </div>
+
+      <div>
+        <label for="hemisphere">Hemisfério</label>
+        <select id="hemisphere">
+          <option value="S" selected>Sul</option>
+          <option value="N">Norte</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modebox">
+      <label>
+        <input type="checkbox" id="fechado" checked onchange="renderPreview()">
+        Fechar poligonal
+      </label>
+
+      <div class="modehelp">
+        Marcado: cria um polígono fechado.
+        Desmarcado: cria uma linha aberta, sem ligar o último ponto ao primeiro.
+      </div>
+    </div>
+
+    <label for="numbers">Números dos pontos (na ordem)</label>
+    <input id="numbers" placeholder="Ex.: 1, 2, 5, 8">
+
+    <div class="buttons">
+      <button class="secondary" onclick="usarNumeros()">Carregar números</button>
+      <button class="secondary" onclick="limparAtual()">Limpar contorno</button>
+    </div>
+
+    <label>
+      Pontos deste grupo
+      <span class="muted">— clique no mapa ou use ↑ ↓</span>
+    </label>
+
+    <div id="current" class="pointlist">
+      <span class="hint">Nenhum ponto selecionado.</span>
+    </div>
+
+    <div class="buttons">
+      <button class="primary" id="add" onclick="adicionar()">Adicionar grupo</button>
+      <button class="primary" id="generate" onclick="gerarKML()">Gerar KML</button>
+      <button class="danger" onclick="cancelar()">Cancelar</button>
+    </div>
+
+    <div id="status" role="status">Carregando pontos da planilha…</div>
+
+    <label>Grupos adicionados</label>
+    <div id="groups">
+      <span class="hint">Nenhum grupo adicionado ainda.</span>
+    </div>
+
+    <div class="footer">
+      <a id="download" download="poligonos.kml">Baixar arquivo KML</a>
+    </div>
+
+  </section>
+
+  <section class="mapwrap">
+
+    <div class="maphead">
+      <span class="hint">Clique nos pontos para montar o contorno.</span>
+
+      <div class="maptools">
+        <label for="basemap" style="margin:0;font-size:12px">Mapa:</label>
+
+        <select id="basemap" onchange="trocarMapa(this.value)">
+          <option value="google">Google Satélite (experimental)</option>
+          <option value="esri">Satélite Esri</option>
+          <option value="googlehybrid">Google Satélite + nomes (experimental)</option>
+          <option value="googleterrain">Google Terreno (experimental)</option>
+          <option value="osm" selected>OpenStreetMap</option>
+          <option value="topo">OpenTopoMap (relevo)</option>
+          <option value="cartolight">CartoDB claro</option>
+          <option value="cartodark">CartoDB escuro</option>
+        </select>
+
+        <span id="count" class="pill">0 pontos</span>
+      </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="muted" style="margin-top:6px">
+      Dica: ao selecionar pontos, o mapa aproxima e centraliza automaticamente o contorno.
+      Use Satélite para comparar com a imagem do lote. Imagens de satélite não substituem divisas oficiais.
+    </div>
+
+  </section>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  let points = [];
+  let pointByNumber = new Map();
+  let current = [];
+  let groups = [];
+  let sheetName = '';
+  let map;
+  let markersLayer;
+  let polygonLayer;
+  let baseLayers = {};
+  let activeBase = 'osm';
+
+  const statusEl = document.getElementById('status');
+
+  function initMap() {
+    map = L.map('map').setView([-19.98, -44.03], 13);
+
+    baseLayers = {
+      google: L.tileLayer(
+        'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        { maxZoom: 20, attribution: 'Map data &copy; Google' }
+      ),
+
+      googlehybrid: L.tileLayer(
+        'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        { maxZoom: 20, attribution: 'Map data &copy; Google' }
+      ),
+
+      googleterrain: L.tileLayer(
+        'https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
+        { maxZoom: 20, attribution: 'Map data &copy; Google' }
+      ),
+
+      esri: L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        { maxZoom: 19, attribution: 'Tiles &copy; Esri' }
+      ),
+
+      osm: L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        { maxZoom: 20, attribution: '&copy; OpenStreetMap' }
+      ),
+
+      topo: L.tileLayer(
+        'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+        { maxZoom: 17, attribution: '&copy; OpenTopoMap' }
+      ),
+
+      cartolight: L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        { maxZoom: 20, attribution: '&copy; OpenStreetMap &copy; CARTO' }
+      ),
+
+      cartodark: L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        { maxZoom: 20, attribution: '&copy; OpenStreetMap &copy; CARTO' }
+      )
+    };
+
+    baseLayers.osm.addTo(map);
+
+    markersLayer = L.layerGroup().addTo(map);
+    polygonLayer = L.layerGroup().addTo(map);
+
+    map.on('baselayerchange', e => {
+      const key = Object.keys(baseLayers).find(
+        k => baseLayers[k] === e.layer
+      );
+
+      if (key) {
+        activeBase = key;
+        document.getElementById('basemap').value = key;
+      }
+    });
+  }
+
+  initMap();
+
+  google.script.run
+    .withSuccessHandler(cfg => {
+      sheetName = cfg.sheetName || '';
+      points = cfg.points || [];
+
+      points.forEach(p => {
+        pointByNumber.set(norm(p.number), p);
+      });
+
+      renderMarkers();
+
+      if (points.length) {
+        statusEl.textContent =
+          'Aba: ' + sheetName + '. ' +
+          points.length + ' pontos disponíveis.';
+
+        const bounds = points
+          .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lon))
+          .map(p => [p.lat, p.lon]);
+
+        if (bounds.length) {
+          map.fitBounds(bounds, {
+            padding: [25, 25],
+            maxZoom: 17
+          });
+        }
+      } else {
+        statusEl.textContent =
+          cfg.message || 'Nenhum ponto válido encontrado.';
+      }
+    })
+    .withFailureHandler(e => {
+      statusEl.textContent = e.message || String(e);
+    })
+    .kmlObterConfiguracaoInicial();
+
+
+  function norm(v) {
+    return String(Number(String(v).replace(',', '.')));
+  }
+
+
+  function renderMarkers() {
+    markersLayer.clearLayers();
+
+    points.forEach(p => {
+      if (!Number.isFinite(p.lat) || !Number.isFinite(p.lon)) return;
+
+      const m = L.circleMarker([p.lat, p.lon], {
+        radius: 7,
+        color: '#ffffff',
+        weight: 2,
+        fillColor: '#174ea6',
+        fillOpacity: 1
+      });
+
+      m.bindTooltip(
+        'Ponto ' + p.number +
+        '<br>E: ' + p.east +
+        '<br>N: ' + p.north
+      );
+
+      m.on('click', () => {
+        if (current.some(x => norm(x.number) === norm(p.number))) {
+          statusEl.textContent =
+            'O ponto ' + p.number + ' já está no contorno.';
+          return;
+        }
+
+        current.push(p);
+        renderCurrent();
+
+        if (current.length === 1) {
+          map.setView([p.lat, p.lon], 19);
+        }
+      });
+
+      markersLayer.addLayer(m);
+    });
+  }
+
+
+  function renderCurrent() {
+    document.getElementById('count').textContent =
+      current.length + ' pontos';
+
+    document.getElementById('numbers').value =
+      current.map(p => p.number).join(', ');
+
+    const el = document.getElementById('current');
+
+    if (!current.length) {
+      el.innerHTML = '<span class="hint">Nenhum ponto selecionado.</span>';
+    } else {
+      el.innerHTML = current.map((p, i) =>
+        '<div class="pointitem">' +
+          '<span><b>' + (i + 1) + '.</b> Ponto ' + esc(p.number) + '</span>' +
+          '<button class="secondary small" onclick="mover(' + i + ',-1)" title="Mover para cima">↑</button>' +
+          '<button class="secondary small" onclick="mover(' + i + ',1)" title="Mover para baixo">↓</button>' +
+          '<button class="danger small" onclick="remover(' + i + ')">×</button>' +
+        '</div>'
+      ).join('');
+    }
+
+    renderPreview();
+  }
+
+
+  function focarContorno() {
+    const valid = current.filter(
+      p => Number.isFinite(p.lat) && Number.isFinite(p.lon)
+    );
+
+    if (!valid.length) return;
+
+    if (valid.length === 1) {
+      map.setView([valid[0].lat, valid[0].lon], 19);
+      return;
+    }
+
+    const bounds = L.latLngBounds(
+      valid.map(p => [p.lat, p.lon])
+    );
+
+    map.fitBounds(bounds, {
+      padding: [45, 45],
+      maxZoom: 19
+    });
+  }
+
+
+  // A prévia respeita a opção de fechamento.
+  function renderPreview() {
+    polygonLayer.clearLayers();
+
+    if (current.length < 2) return;
+
+    const latlngs = current.map(p => [p.lat, p.lon]);
+    const color = document.getElementById('color').value;
+    const fechado = document.getElementById('fechado').checked;
+
+    if (fechado && current.length >= 3) {
+      // Prévia de polígono fechado.
+      polygonLayer.addLayer(
+        L.polygon(latlngs, {
+          color: color,
+          fillColor: color,
+          fillOpacity: 0.28,
+          weight: 4,
+          opacity: 1
+        })
+      );
+    } else {
+      // Linha aberta: não desenha o segmento de volta ao primeiro ponto.
+      polygonLayer.addLayer(
+        L.polyline(latlngs, {
+          color: color,
+          weight: 4,
+          opacity: 1,
+          dashArray: fechado ? '5,5' : null
+        })
+      );
+    }
+
+    focarContorno();
+  }
+
+
+  function mover(i, d) {
+    const j = i + d;
+
+    if (j < 0 || j >= current.length) return;
+
+    [current[i], current[j]] = [current[j], current[i]];
+
+    renderCurrent();
+  }
+
+
+  function remover(i) {
+    current.splice(i, 1);
+    renderCurrent();
+  }
+
+
+  function limparAtual() {
+    current = [];
+    renderCurrent();
+    statusEl.textContent = 'Contorno atual limpo.';
+  }
+
+
+  function usarNumeros() {
+    const raw = document.getElementById('numbers').value.trim();
+
+    if (!raw) {
+      statusEl.textContent = 'Digite os números separados por vírgula.';
+      return;
+    }
+
+    const nums = raw.split(/[;,\s]+/).filter(Boolean);
+    const chosen = [];
+
+    for (const n of nums) {
+      const p = pointByNumber.get(norm(n));
+
+      if (!p) {
+        statusEl.textContent = 'Ponto não encontrado: ' + n;
+        return;
+      }
+
+      if (chosen.some(x => norm(x.number) === norm(p.number))) {
+        statusEl.textContent = 'O ponto ' + n + ' foi repetido.';
+        return;
+      }
+
+      chosen.push(p);
+    }
+
+    current = chosen;
+
+    renderCurrent();
+    focarContorno();
+
+    statusEl.textContent =
+      chosen.length + ' pontos carregados na ordem informada.';
+  }
+
+
+  function adicionar() {
+    const fechado = document.getElementById('fechado').checked;
+    const minimo = fechado ? 3 : 2;
+
+    if (current.length < minimo) {
+      statusEl.textContent = fechado
+        ? 'Selecione pelo menos 3 pontos para formar um polígono fechado.'
+        : 'Selecione pelo menos 2 pontos para formar uma linha aberta.';
+
+      return;
+    }
+
+    const zone = Number(document.getElementById('zone').value);
+
+    if (!Number.isInteger(zone) || zone < 1 || zone > 60) {
+      statusEl.textContent = 'Informe uma zona UTM entre 1 e 60.';
+      return;
+    }
+
+    const hemisphere = document.getElementById('hemisphere').value;
+    const tipo = fechado ? 'Polígono ' : 'Linha aberta ';
+
+    const group = {
+      numeros: current.map(p => String(p.number)),
+      zona: zone,
+      hemisferio: hemisphere,
+      fechado: fechado,
+      name: document.getElementById('name').value.trim() ||
+        (tipo + (groups.length + 1)),
+      description: document.getElementById('description').value.trim(),
+      color: hexToKml(document.getElementById('color').value)
+    };
+
+    const btn = document.getElementById('add');
+    btn.disabled = true;
+
+    google.script.run
+      .withSuccessHandler(() => {
+        groups.push(group);
+
+        renderGroups();
+
+        statusEl.textContent =
+          (fechado ? 'Polígono fechado' : 'Linha aberta') +
+          ' salvo na coluna ' +
+          colName(9 + groups.length - 1) +
+          '. Você pode montar outro grupo ou gerar o KML.';
+
+        current = [];
+        renderCurrent();
+
+        document.getElementById('name').value = '';
+        document.getElementById('description').value = '';
+
+        btn.disabled = false;
+      })
+      .withFailureHandler(e => {
+        statusEl.textContent = e.message || String(e);
+        btn.disabled = false;
+      })
+      .kmlSalvarGrupoEObterCoordenadas(
+        group.numeros,
+        groups.length,
+        zone,
+        hemisphere,
+        fechado
+      );
+  }
+
+
+  function renderGroups() {
+    const el = document.getElementById('groups');
+
+    if (!groups.length) {
+      el.innerHTML =
+        '<span class="hint">Nenhum grupo adicionado ainda.</span>';
+      return;
+    }
+
+    el.innerHTML = groups.map((g, i) => {
+      const tipo = g.fechado ? 'Polígono fechado' : 'Linha aberta';
+
+      return (
+        '<div class="groupitem">' +
+          '<span class="swatch" style="background:' + esc(g.color) + '"></span>' +
+          '<span class="gtext">' +
+            '<b>' + (i + 1) + '. ' + esc(g.name) + '</b><br>' +
+            '<span class="muted">' + tipo +
+            ' · Pontos: ' + esc(g.numeros.join(', ')) +
+            ' · coluna ' + colName(9 + i) + '</span>' +
+          '</span>' +
+          '<button class="danger small" onclick="excluirGrupo(' + i + ')">×</button>' +
+        '</div>'
+      );
+    }).join('');
+  }
+
+
+  function excluirGrupo(i) {
+    if (!confirm(
+      'Remover este grupo da lista? A coluna já gravada na planilha não será apagada.'
+    )) {
+      return;
+    }
+
+    groups.splice(i, 1);
+    renderGroups();
+
+    statusEl.textContent =
+      'Grupo removido da lista. A gravação anterior na planilha permanece.';
+  }
+
+
+  function colName(n) {
+    let s = '';
+
+    while (n > 0) {
+      const r = (n - 1) % 26;
+      s = String.fromCharCode(65 + r) + s;
+      n = Math.floor((n - 1) / 26);
+    }
+
+    return s;
+  }
+
+
+  function hexToKml(hex) {
+    const h = hex.replace('#', '');
+    const r = h.slice(0, 2);
+    const g = h.slice(2, 4);
+    const b = h.slice(4, 6);
+
+    // KML usa a ordem alpha, blue, green, red.
+    return 'ff' + b + g + r;
+  }
+
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[c]));
+  }
+
+
+  function trocarMapa(key) {
+    if (!baseLayers[key]) return;
+
+    Object.keys(baseLayers).forEach(k => {
+      if (map.hasLayer(baseLayers[k])) {
+        map.removeLayer(baseLayers[k]);
+      }
+    });
+
+    baseLayers[key].addTo(map);
+    activeBase = key;
+  }
+
+
+  function cancelar() {
+    if (
+      (groups.length || current.length) &&
+      !confirm(
+        'Cancelar e fechar? Os grupos já gravados na planilha continuarão lá.'
+      )
+    ) {
+      return;
+    }
+
+    google.script.host.close();
+  }
+
+
+  function gerarKML() {
+    if (!groups.length) {
+      statusEl.textContent =
+        'Adicione pelo menos um grupo antes de gerar o KML.';
+      return;
+    }
+
+    statusEl.textContent = 'Gerando arquivo KML…';
+
+    document.querySelectorAll('button').forEach(b => {
+      b.disabled = true;
+    });
+
+    google.script.run
+      .withSuccessHandler(file => {
+        const blob = new Blob(
+          [file.content],
+          { type: 'application/vnd.google-earth.kml+xml;charset=utf-8' }
+        );
+
+        const url = URL.createObjectURL(blob);
+        const a = document.getElementById('download');
+
+        a.href = url;
+        a.download = file.filename;
+        a.style.display = 'inline-block';
+        a.textContent = 'Baixar ' + file.filename;
+
+        statusEl.textContent =
+          'KML pronto. Clique no link para baixar e abrir no Google Earth Pro.';
+
+        document.querySelectorAll('button').forEach(b => {
+          b.disabled = false;
+        });
+      })
+      .withFailureHandler(e => {
+        statusEl.textContent = e.message || String(e);
+
+        document.querySelectorAll('button').forEach(b => {
+          b.disabled = false;
+        });
+      })
+      .kmlGerarArquivo(groups);
+  }
+
+</script>
+</body>
+</html>
